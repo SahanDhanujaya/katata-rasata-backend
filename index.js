@@ -14,7 +14,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://lakas-take-away.netlify.app/",
+      "https://lakas-take-away.netlify.app"
     ],
     credentials: true,
     methods: [
