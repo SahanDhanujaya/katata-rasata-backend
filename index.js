@@ -3,11 +3,19 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const escpos = require("escpos");
+const router = require("./routes/auth.routes");
 escpos.SerialPort = require("escpos-serialport");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+
+app.use(cors({
+    origin: "https://lakas-take-away.netlify.app/",
+    credentials: true,
+}));
+
+app.use(cookieParser());
 
 mongoose
   .connect(process.env.MONGO_URI)
@@ -252,5 +260,7 @@ app.post("/api/print-bluetooth", (req, res) => {
     res.json({ success: true, message: "Receipt sent to printer" });
   });
 });
+
+app.use('/api', router);
 
 app.listen(5000, () => console.log("🚀 Inventory Engine Online on Port 5000"));
