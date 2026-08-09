@@ -224,57 +224,163 @@ app.get('/api/sales/backups', async (req, res) => {
 });
 
 // Print a receipt
-app.post("/api/print-bluetooth", (req, res) => {
+// Candidate ports to try, in order. Update this list to match what your
+// OS actually assigns after pairing (check Bluetooth > COM Ports in Windows,
+// or run `rfcomm bind 0 <MAC>` on Linux and use /dev/rfcomm0).
+const CANDIDATE_PORTS = ["COM3", "COM4", "COM5", "/dev/rfcomm0"];
+const BAUD_RATE = 19200; // try 9600 if this doesn't work — check your printer's config page/DIP switches
+const CONNECT_TIMEOUT_MS = 4000;
+
+// Attempts to open a printer connection on the first working port.
+// Returns { device, printer, port } or throws.
+function connectToPrinter() {
+  return new Promise((resolve, reject) => {
+    let index = 0;
+
+    const tryNextPort = () => {
+      if (index >= CANDIDATE_PORTS.length) {
+        return reject(new Error("No printer found on any candidate port"));
+      }
+
+      const port = CANDIDATE_PORTS[index];
+      index++;
+
+      let settled = false;
+      const device = new escpos.SerialPort(port, { baudRate: BAUD_RATE });
+
+      const timeout = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          console.warn(`Timed out connecting to ${port}, trying next...`);
+          tryNextPort();
+        }
+      }, CONNECT_TIMEOUT_MS);
+
+      device.open((error) => {
+        if (settled) return; // timeout already fired, ignore late callback
+        clearTimeout(timeout);
+        settled = true;
+
+        if (error) {
+          console.warn(`Failed to connect on ${port}:`, error.message);
+          tryNextPort();
+        } else {
+          const printer = new escpos.Printer(device);
+          resolve({ device, printer, port });
+        }
+      });
+    };
+
+    tryNextPort();
+  });
+}
+
+app.post("/api/print-bluetooth", async (req, res) => {
   const { items, total, orderId } = req.body;
 
-  // Replace with your printer's static local IP address and port (default 9100)
-  // Replace 'COM3' or '/dev/rfcomm0' with your Bluetooth virtual port
-  const device = new escpos.SerialPort("COM3", { baudRate: 9600 });
-  const printer = new escpos.Printer(device);
-
-  device.open((error) => {
-    if (error) {
-      console.error("Printer connection failed:", error);
-      return res.status(500).json({ error: "Failed to connect to printer" });
+  // ── Validate input before touching the printer ──
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: "No items provided" });
+  }
+  if (typeof total !== "number" || Number.isNaN(total)) {
+    return res.status(400).json({ error: "Invalid total" });
+  }
+  if (!orderId) {
+    return res.status(400).json({ error: "Missing orderId" });
+  }
+  for (const item of items) {
+    if (!item.name || typeof item.qty !== "number" || typeof item.price !== "number") {
+      return res.status(400).json({ error: `Invalid item: ${JSON.stringify(item)}` });
     }
+  }
 
+  let device;
+  try {
+    const conn = await connectToPrinter();
+    device = conn.device;
+    const printer = conn.printer;
+    console.log(`Printing on ${conn.port}`);
+
+    // ── Header ──
     printer
       .font("a")
       .align("ct")
       .style("b")
       .size(1, 1)
-      .text("MY STORE NAME")
-      .text("--------------------------------")
-      .align("lt")
-      .text(`Order ID: ${orderId}`)
-      .text(`Date: ${new Date().toLocaleString()}`)
+      .text("LAKA'S TAKE AWAY")
+      .style("normal")
+      .size(0, 0)
+      .text("Horana road Wadaka panadura")
+      .text("0763243716")
+      .text(new Date().toLocaleString())
+      .text(`ID: ${orderId}`)
       .text("--------------------------------");
+
+    // ── Items table ──
+    printer.align("lt").style("b");
+    printer.tableCustom([
+      { text: "Item", align: "LEFT", width: 0.5 },
+      { text: "Qty", align: "CENTER", width: 0.2 },
+      { text: "Price", align: "RIGHT", width: 0.3 },
+    ]);
+    printer.style("normal");
 
     items.forEach((item) => {
       printer.tableCustom([
         { text: item.name, align: "LEFT", width: 0.5 },
         { text: `x${item.qty}`, align: "CENTER", width: 0.2 },
         {
-          text: `$${(item.price * item.qty).toFixed(2)}`,
+          text: `Rs.${(item.price * item.qty).toFixed(2)}`,
           align: "RIGHT",
           width: 0.3,
         },
       ]);
     });
 
+    // ── Total ──
     printer
       .text("--------------------------------")
       .align("rt")
       .style("b")
-      .text(`TOTAL: $${total.toFixed(2)}`)
-      .align("ct")
-      .text("\nThank you for your visit!\n\n")
-      .cut() // Cut paper
-      .cashdraw() // Optionally pop the cash drawer open
-      .close();
+      .size(1, 1)
+      .text(`TOTAL: Rs.${total.toFixed(2)}`)
+      .size(0, 0);
 
-    res.json({ success: true, message: "Receipt sent to printer" });
-  });
+    // ── Footer ──
+    printer
+      .align("ct")
+      .style("b")
+      .text("\nThank You Visit Again!")
+      .style("normal")
+      .text("Powered by Trovix Tech")
+      .text("0756519837/0764726820")
+      .text(`Copyright (c) ${new Date().getFullYear()}`)
+      .text("\n")
+      .cut()
+      .close(() => {
+        res.json({ success: true, message: "Receipt sent to printer" });
+      });
+  } catch (err) {
+    console.error("Print job failed:", err.message);
+    if (device) {
+      try { device.close(); } catch (_) {}
+    }
+    res.status(500).json({
+      error: "Failed to connect to printer",
+      detail: err.message,
+    });
+  }
+});
+
+// ── Health check endpoint — call this from the frontend to show connection status ──
+app.get("/api/printer/status", async (req, res) => {
+  try {
+    const { device, port } = await connectToPrinter();
+    device.close();
+    res.json({ connected: true, port });
+  } catch (err) {
+    res.json({ connected: false, error: err.message });
+  }
 });
 
 app.use('/api', router);
