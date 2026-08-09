@@ -12,23 +12,11 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://lakas-take-away.netlify.app"
-    ],
+    origin: ["http://localhost:5173", "https://lakas-take-away.netlify.app"],
     credentials: true,
-    methods: [
-      "GET",
-      "POST",
-      "PUT",
-      "PATCH",
-      "DELETE"
-    ],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization"
-    ]
-  })
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
 );
 
 app.use(cookieParser());
@@ -213,14 +201,14 @@ app.delete("/api/sales/:id", async (req, res) => {
   }
 });
 
-app.get('/api/sales/backups', async (req, res) => {
-    try {
-        const backups = await BackupOrder.find().sort({ deletedAt: -1 });
-        res.json(backups);
-    } catch (err) {
-        console.error("Fetch backups error:", err);
-        res.status(500).json({ error: "Failed to fetch backups" });
-    }
+app.get("/api/sales/backups", async (req, res) => {
+  try {
+    const backups = await BackupOrder.find().sort({ deletedAt: -1 });
+    res.json(backups);
+  } catch (err) {
+    console.error("Fetch backups error:", err);
+    res.status(500).json({ error: "Failed to fetch backups" });
+  }
 });
 
 // Print a receipt
@@ -236,6 +224,10 @@ const CONNECT_TIMEOUT_MS = 4000;
 const WARMUP_DELAY_MS = 400; // let the Bluetooth SPP link settle before writing
 
 function tryOpenPort(port, baudRate) {
+  SerialPort.list().then((ports) => {
+    console.log("Available serial ports:");
+    ports.forEach((p) => console.log(p.path, "-", p.manufacturer || "unknown"));
+  });
   return new Promise((resolve, reject) => {
     let settled = false;
     const device = new escpos.SerialPort(port, {
@@ -284,7 +276,7 @@ async function connectToPrinter() {
   }
 
   throw new Error(
-    `No printer found on any port/baud combo. Tried: ${errors.join(" | ")}`
+    `No printer found on any port/baud combo. Tried: ${errors.join(" | ")}`,
   );
 }
 
@@ -312,8 +304,14 @@ app.post("/api/print-bluetooth", async (req, res) => {
     return res.status(400).json({ error: "Missing orderId" });
   }
   for (const item of items) {
-    if (!item.name || typeof item.qty !== "number" || typeof item.price !== "number") {
-      return res.status(400).json({ error: `Invalid item: ${JSON.stringify(item)}` });
+    if (
+      !item.name ||
+      typeof item.qty !== "number" ||
+      typeof item.price !== "number"
+    ) {
+      return res
+        .status(400)
+        .json({ error: `Invalid item: ${JSON.stringify(item)}` });
     }
   }
 
@@ -408,6 +406,6 @@ app.get("/api/printer/status", async (req, res) => {
   }
 });
 
-app.use('/api', router);
+app.use("/api", router);
 
 app.listen(5000, () => console.log("🚀 Inventory Engine Online on Port 5000"));
