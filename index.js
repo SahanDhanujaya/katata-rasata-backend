@@ -210,7 +210,14 @@ app.get("/api/sales/backups", async (req, res) => {
 });
 
 const escpos = require("escpos");
-escpos.SerialPort = require("escpos-serialport");
+const SerialPortModule = require("escpos-serialport");
+
+escpos.SerialPort = SerialPortModule.SerialPort || SerialPortModule.default || SerialPortModule;
+
+// Sanity check on startup — fail loudly instead of mysteriously at print time
+if (typeof escpos.SerialPort !== "function") {
+  console.error("FATAL: escpos.SerialPort did not resolve to a constructor. Check escpos-serialport version.");
+}
 
 const CANDIDATE_PORTS = ["COM8", "COM7", "COM5", "/dev/rfcomm0"];
 const CANDIDATE_BAUD_RATES = [9600, 19200, 38400, 57600];
