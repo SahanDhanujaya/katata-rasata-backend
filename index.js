@@ -233,12 +233,16 @@ app.get('/api/sales/backups', async (req, res) => {
 const CANDIDATE_PORTS = ["COM8", "COM7", "COM5", "/dev/rfcomm0"];
 const CANDIDATE_BAUD_RATES = [9600, 19200, 38400, 57600];
 const CONNECT_TIMEOUT_MS = 4000;
+const WARMUP_DELAY_MS = 400; // let the Bluetooth SPP link settle before writing
 
-// Attempts a single open() with a timeout guard.
 function tryOpenPort(port, baudRate) {
   return new Promise((resolve, reject) => {
     let settled = false;
-    const device = new escpos.SerialPort(port, { baudRate });
+    const device = new escpos.SerialPort(port, {
+      baudRate,
+      autoOpen: false,
+      lock: false, // don't exclusively lock — helps with flaky BT SPP ports on Windows
+    });
 
     const timeout = setTimeout(() => {
       if (!settled) {
@@ -248,21 +252,20 @@ function tryOpenPort(port, baudRate) {
     }, CONNECT_TIMEOUT_MS);
 
     device.open((error) => {
-      if (settled) return; // timeout already fired
+      if (settled) return;
       clearTimeout(timeout);
       settled = true;
 
       if (error) {
         reject(new Error(`${port} @ ${baudRate}: ${error.message}`));
       } else {
-        resolve(device);
+        // Give the Bluetooth link a moment to fully settle before writing
+        setTimeout(() => resolve(device), WARMUP_DELAY_MS);
       }
     });
   });
 }
 
-// Tries every candidate port × baud rate combo until one connects.
-// Returns { device, printer, port, baudRate } or throws with a full log of attempts.
 async function connectToPrinter() {
   const errors = [];
 
@@ -275,6 +278,7 @@ async function connectToPrinter() {
         return { device, printer, port, baudRate };
       } catch (err) {
         errors.push(err.message);
+        console.warn("Connect attempt failed:", err.message);
       }
     }
   }
