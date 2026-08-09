@@ -231,7 +231,7 @@ app.get('/api/sales/backups', async (req, res) => {
 // Known-good ports first (COM8 = Outgoing, confirmed working from pairing).
 // Kept as fallbacks in case the printer gets re-paired and Windows reassigns a new COM number.
 const CANDIDATE_PORTS = ["COM8", "COM7", "COM5", "/dev/rfcomm0"];
-const CANDIDATE_BAUD_RATES = [19200, 9600, 38400, 57600];
+const CANDIDATE_BAUD_RATES = [9600, 19200, 38400, 57600];
 const CONNECT_TIMEOUT_MS = 4000;
 
 // Attempts a single open() with a timeout guard.
