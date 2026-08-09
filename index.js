@@ -227,71 +227,52 @@ app.get('/api/sales/backups', async (req, res) => {
 // Candidate ports to try, in order. Update this list to match what your
 // OS actually assigns after pairing (check Bluetooth > COM Ports in Windows,
 // or run `rfcomm bind 0 <MAC>` on Linux and use /dev/rfcomm0).
-
-// Known-good ports first (COM8 = Outgoing, confirmed working from pairing).
-// Keep this list as a fallback in case auto-discovery below doesn't turn up a device.
 const CANDIDATE_PORTS = ["COM8", "COM7", "COM5", "/dev/rfcomm0"];
-const CANDIDATE_BAUD_RATES = [19200, 9600, 38400, 57600];
+const BAUD_RATE = 19200; // try 9600 if this doesn't work — check your printer's config page/DIP switches
 const CONNECT_TIMEOUT_MS = 4000;
 
-// Attempts a single open() with a timeout guard.
-function tryOpenPort(port, baudRate) {
+// Attempts to open a printer connection on the first working port.
+// Returns { device, printer, port } or throws.
+function connectToPrinter() {
   return new Promise((resolve, reject) => {
-    let settled = false;
-    const device = new escpos.SerialPort(port, { baudRate });
+    let index = 0;
 
-    const timeout = setTimeout(() => {
-      if (!settled) {
+    const tryNextPort = () => {
+      if (index >= CANDIDATE_PORTS.length) {
+        return reject(new Error("No printer found on any candidate port"));
+      }
+
+      const port = CANDIDATE_PORTS[index];
+      index++;
+
+      let settled = false;
+      const device = new escpos.SerialPort(port, { baudRate: BAUD_RATE });
+
+      const timeout = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          console.warn(`Timed out connecting to ${port}, trying next...`);
+          tryNextPort();
+        }
+      }, CONNECT_TIMEOUT_MS);
+
+      device.open((error) => {
+        if (settled) return; // timeout already fired, ignore late callback
+        clearTimeout(timeout);
         settled = true;
-        reject(new Error(`Timed out on ${port} @ ${baudRate}`));
-      }
-    }, CONNECT_TIMEOUT_MS);
 
-    device.open((error) => {
-      if (settled) return; // timeout already fired
-      clearTimeout(timeout);
-      settled = true;
+        if (error) {
+          console.warn(`Failed to connect on ${port}:`, error.message);
+          tryNextPort();
+        } else {
+          const printer = new escpos.Printer(device);
+          resolve({ device, printer, port });
+        }
+      });
+    };
 
-      if (error) {
-        reject(new Error(`${port} @ ${baudRate}: ${error.message}`));
-      } else {
-        resolve(device);
-      }
-    });
+    tryNextPort();
   });
-}
-
-// Tries every candidate port × baud rate combo until one connects.
-// Returns { device, printer, port, baudRate } or throws.
-async function connectToPrinter() {
-  const errors = [];
-
-  for (const port of CANDIDATE_PORTS) {
-    for (const baudRate of CANDIDATE_BAUD_RATES) {
-      try {
-        const device = await tryOpenPort(port, baudRate);
-        const printer = new escpos.Printer(device);
-        console.log(`Connected on ${port} @ ${baudRate} baud`);
-        return { device, printer, port, baudRate };
-      } catch (err) {
-        errors.push(err.message);
-      }
-    }
-  }
-
-  throw new Error(
-    `No printer found on any port/baud combo. Tried: ${errors.join(" | ")}`
-  );
-}
-
-// Safely closes a device without letting an internal escpos error crash the process.
-function safeClose(device, cb) {
-  try {
-    device.close(cb);
-  } catch (err) {
-    console.warn("Error closing device:", err.message);
-    if (cb) cb();
-  }
 }
 
 app.post("/api/print-bluetooth", async (req, res) => {
@@ -314,12 +295,11 @@ app.post("/api/print-bluetooth", async (req, res) => {
   }
 
   let device;
-  let responded = false;
-
   try {
     const conn = await connectToPrinter();
     device = conn.device;
     const printer = conn.printer;
+    console.log(`Printing on ${conn.port}`);
 
     // ── Header ──
     printer
@@ -378,27 +358,26 @@ app.post("/api/print-bluetooth", async (req, res) => {
       .text("\n")
       .cut()
       .close(() => {
-        responded = true;
         res.json({ success: true, message: "Receipt sent to printer" });
       });
   } catch (err) {
     console.error("Print job failed:", err.message);
-    if (device) safeClose(device);
-    if (!responded) {
-      res.status(500).json({
-        error: "Failed to connect to printer",
-        detail: err.message,
-      });
+    if (device) {
+      try { device.close(); } catch (_) {}
     }
+    res.status(500).json({
+      error: "Failed to connect to printer",
+      detail: err.message,
+    });
   }
 });
 
-// ── Health check — call this from the frontend before printing ──
+// ── Health check endpoint — call this from the frontend to show connection status ──
 app.get("/api/printer/status", async (req, res) => {
   try {
-    const { device, port, baudRate } = await connectToPrinter();
-    safeClose(device);
-    res.json({ connected: true, port, baudRate });
+    const { device, port } = await connectToPrinter();
+    device.close();
+    res.json({ connected: true, port });
   } catch (err) {
     res.json({ connected: false, error: err.message });
   }
