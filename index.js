@@ -2,9 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const escpos = require("escpos");
 const router = require("./routes/auth.routes");
-escpos.SerialPort = require("escpos-serialport");
 const cookieParser = require("cookie-parser");
 
 const app = express();
@@ -211,29 +209,21 @@ app.get("/api/sales/backups", async (req, res) => {
   }
 });
 
-// Print a receipt
-// Candidate ports to try, in order. Update this list to match what your
-// OS actually assigns after pairing (check Bluetooth > COM Ports in Windows,
-// or run `rfcomm bind 0 <MAC>` on Linux and use /dev/rfcomm0).
+const escpos = require("escpos");
+escpos.SerialPort = require("escpos-serialport");
 
-// Known-good ports first (COM8 = Outgoing, confirmed working from pairing).
-// Kept as fallbacks in case the printer gets re-paired and Windows reassigns a new COM number.
 const CANDIDATE_PORTS = ["COM8", "COM7", "COM5", "/dev/rfcomm0"];
 const CANDIDATE_BAUD_RATES = [9600, 19200, 38400, 57600];
 const CONNECT_TIMEOUT_MS = 4000;
-const WARMUP_DELAY_MS = 400; // let the Bluetooth SPP link settle before writing
+const WARMUP_DELAY_MS = 400;
 
 function tryOpenPort(port, baudRate) {
-  SerialPort.list().then((ports) => {
-    console.log("Available serial ports:");
-    ports.forEach((p) => console.log(p.path, "-", p.manufacturer || "unknown"));
-  });
   return new Promise((resolve, reject) => {
     let settled = false;
     const device = new escpos.SerialPort(port, {
       baudRate,
       autoOpen: false,
-      lock: false, // don't exclusively lock — helps with flaky BT SPP ports on Windows
+      lock: false,
     });
 
     const timeout = setTimeout(() => {
@@ -251,7 +241,6 @@ function tryOpenPort(port, baudRate) {
       if (error) {
         reject(new Error(`${port} @ ${baudRate}: ${error.message}`));
       } else {
-        // Give the Bluetooth link a moment to fully settle before writing
         setTimeout(() => resolve(device), WARMUP_DELAY_MS);
       }
     });
@@ -280,7 +269,6 @@ async function connectToPrinter() {
   );
 }
 
-// Safely closes a device without letting an internal escpos error crash the process.
 function safeClose(device, cb) {
   try {
     device.close(cb);
@@ -293,7 +281,6 @@ function safeClose(device, cb) {
 app.post("/api/print-bluetooth", async (req, res) => {
   const { items, total, orderId } = req.body;
 
-  // ── Validate input before touching the printer ──
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: "No items provided" });
   }
@@ -323,7 +310,6 @@ app.post("/api/print-bluetooth", async (req, res) => {
     device = conn.device;
     const printer = conn.printer;
 
-    // ── Header ──
     printer
       .font("a")
       .align("ct")
@@ -338,7 +324,6 @@ app.post("/api/print-bluetooth", async (req, res) => {
       .text(`ID: ${orderId}`)
       .text("--------------------------------");
 
-    // ── Items table ──
     printer.align("lt").style("b");
     printer.tableCustom([
       { text: "Item", align: "LEFT", width: 0.5 },
@@ -359,7 +344,6 @@ app.post("/api/print-bluetooth", async (req, res) => {
       ]);
     });
 
-    // ── Total ──
     printer
       .text("--------------------------------")
       .align("rt")
@@ -368,7 +352,6 @@ app.post("/api/print-bluetooth", async (req, res) => {
       .text(`TOTAL: Rs.${total.toFixed(2)}`)
       .size(0, 0);
 
-    // ── Footer ──
     printer
       .align("ct")
       .style("b")
@@ -395,7 +378,6 @@ app.post("/api/print-bluetooth", async (req, res) => {
   }
 });
 
-// ── Health check — call this from the frontend before printing ──
 app.get("/api/printer/status", async (req, res) => {
   try {
     const { device, port, baudRate } = await connectToPrinter();
@@ -405,7 +387,6 @@ app.get("/api/printer/status", async (req, res) => {
     res.json({ connected: false, error: err.message });
   }
 });
-
 app.use("/api", router);
 
 app.listen(5000, () => console.log("🚀 Inventory Engine Online on Port 5000"));
