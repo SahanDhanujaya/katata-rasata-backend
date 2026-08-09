@@ -227,8 +227,6 @@ app.get('/api/sales/backups', async (req, res) => {
 // Candidate ports to try, in order. Update this list to match what your
 // OS actually assigns after pairing (check Bluetooth > COM Ports in Windows,
 // or run `rfcomm bind 0 <MAC>` on Linux and use /dev/rfcomm0).
-const escpos = require("escpos");
-escpos.SerialPort = require("escpos-serialport");
 
 // Known-good ports first (COM8 = Outgoing, confirmed working from pairing).
 // Keep this list as a fallback in case auto-discovery below doesn't turn up a device.
