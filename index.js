@@ -289,13 +289,17 @@ function padLine(name, qty, priceStr) {
   return `${nameCol}${qtyCol}  ${priceStr}`;
 }
 
-registerFont(path.join(__dirname, "fonts", "NotoSansSinhala-Regular.ttf"), {
-  family: "Noto Sans Sinhala",
-});
-registerFont(path.join(__dirname, "fonts", "NotoSansSinhala-Bold.ttf"), {
-  family: "Noto Sans Sinhala",
-  weight: "bold",
-});
+try {
+  registerFont(path.join(__dirname, "fonts", "NotoSansSinhala-Regular.ttf"), {
+    family: "Noto Sans Sinhala",
+  });
+  registerFont(path.join(__dirname, "fonts", "NotoSansSinhala-Bold.ttf"), {
+    family: "Noto Sans Sinhala",
+    weight: "bold",
+  });
+} catch (err) {
+  console.error("Failed to register Sinhala fonts:", err.message);
+}
 
 function sinhalaTextToBase64(text, options = {}) {
   const {
@@ -341,7 +345,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
 
     const receipt = [
       {
-        type: 1, 
+        type: 1,
         content: sinhalaTextToBase64("කටට රසට", {
           fontSize: 36,
           bold: true,
