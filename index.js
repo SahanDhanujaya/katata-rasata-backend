@@ -5,6 +5,8 @@ const cors = require("cors");
 const router = require("./routes/auth.routes");
 const cookieParser = require("cookie-parser");
 const { authorizeRole, verifyAuth } = require("./middlewares/auth.middleware");
+const { createCanvas, registerFont } = require("canvas");
+const path = require("path");
 
 const app = express();
 app.use(express.json());
@@ -286,6 +288,14 @@ function padLine(name, qty, priceStr) {
   const qtyCol = `x${qty}`.padStart(4);
   return `${nameCol}${qtyCol}  ${priceStr}`;
 }
+
+registerFont(path.join(__dirname, "fonts", "NotoSansSinhala-Regular.ttf"), {
+  family: "Noto Sans Sinhala",
+});
+registerFont(path.join(__dirname, "fonts", "NotoSansSinhala-Bold.ttf"), {
+  family: "Noto Sans Sinhala",
+  weight: "bold",
+});
 
 function sinhalaTextToBase64(text, options = {}) {
   const {
