@@ -35,7 +35,7 @@ const Item = mongoose.model("Item", ItemSchema);
 
 const SaleSchema = new mongoose.Schema({
   // <-- added: Don't Drop orderId
-  orderId: { type: String }, 
+  orderId: { type: String },
   items: Array,
   totalAmount: Number,
   date: { type: Date, default: Date.now },
@@ -148,8 +148,28 @@ app.get("/api/sales/report", async (req, res) => {
       end = new Date(endDate + "T23:59:59.999Z");
     } else {
       const now = new Date();
-      start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
-      end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+      start = new Date(
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate(),
+          0,
+          0,
+          0,
+          0,
+        ),
+      );
+      end = new Date(
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate(),
+          23,
+          59,
+          59,
+          999,
+        ),
+      );
     }
 
     const filter = { date: { $gte: start, $lte: end } };
@@ -159,7 +179,10 @@ app.get("/api/sales/report", async (req, res) => {
       Sale.find(filter),
     ]);
 
-    const totalRevenue = allMatching.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+    const totalRevenue = allMatching.reduce(
+      (sum, s) => sum + (s.totalAmount || 0),
+      0,
+    );
     const totalCount = allMatching.length;
 
     res.json({
@@ -239,15 +262,20 @@ app.delete("/api/sales/:id", async (req, res) => {
   }
 });
 
-app.get("/api/sales/backups", verifyAuth, authorizeRole("admin"), async (req, res) => {
-  try {
-    const backups = await BackupOrder.find().sort({ deletedAt: -1 });
-    res.json(backups);
-  } catch (err) {
-    console.error("Fetch backups error:", err);
-    res.status(500).json({ error: "Failed to fetch backups" });
-  }
-});
+app.get(
+  "/api/sales/backups",
+  verifyAuth,
+  authorizeRole("admin"),
+  async (req, res) => {
+    try {
+      const backups = await BackupOrder.find().sort({ deletedAt: -1 });
+      res.json(backups);
+    } catch (err) {
+      console.error("Fetch backups error:", err);
+      res.status(500).json({ error: "Failed to fetch backups" });
+    }
+  },
+);
 
 // --- BLUETOOTH PRINT (Android tablet, "Bluetooth Print" by Mate Technologies) ---
 // Tablet's browser navigates to my.bluetoothprint.scheme://<this route's URL>,
@@ -257,6 +285,38 @@ function padLine(name, qty, priceStr) {
   const nameCol = name.length > 16 ? name.slice(0, 15) + "." : name.padEnd(16);
   const qtyCol = `x${qty}`.padStart(4);
   return `${nameCol}${qtyCol}  ${priceStr}`;
+}
+
+function sinhalaTextToBase64(text, options = {}) {
+  const {
+    fontSize = 32,
+    fontFamily = "Noto Sans Sinhala, sans-serif",
+    bold = false,
+    padding = 8,
+    width = 384, // typical 58mm thermal printer width in px at 203dpi
+  } = options;
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  // Measure text first to size the canvas
+  ctx.font = `${bold ? "bold " : ""}${fontSize}px ${fontFamily}`;
+  const metrics = ctx.measureText(text);
+  const textWidth = Math.min(metrics.width, width - padding * 2);
+
+  canvas.width = width;
+  canvas.height = fontSize + padding * 2;
+
+  // Re-apply font after resize (canvas resets context on resize)
+  ctx.font = `${bold ? "bold " : ""}${fontSize}px ${fontFamily}`;
+  ctx.fillStyle = "#000000";
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "center";
+
+  ctx.fillText(text, width / 2, canvas.height / 2, width - padding * 2);
+
+  // Strip the "data:image/png;base64," prefix — RawBT wants raw base64
+  return canvas.toDataURL("image/png").split(",")[1];
 }
 
 app.get("/api/print/bill/:saleId", async (req, res) => {
@@ -270,7 +330,15 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
     }
 
     const receipt = [
-      { type: 0, content: "කටට රසට", bold: 1, align: 1, format: 1 },
+      {
+        type: 1, 
+        content: sinhalaTextToBase64("කටට රසට", {
+          fontSize: 36,
+          bold: true,
+          width: 384,
+        }),
+        align: 1,
+      },
       {
         type: 0,
         content: "NO: 20/7/8/9 Private Bus Stand Panadura",
