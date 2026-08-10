@@ -334,15 +334,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
     }
 
     const receipt = [
-      {
-        type: 1,
-        content: sinhalaTextToBase64("කටට රසට", {
-          fontSize: 36,
-          bold: true,
-          width: 384,
-        }),
-        align: 1,
-      },
+      { type: 0, content: "KATATA RASATA", bold: 1, align: 1, format: 0 },
       {
         type: 0,
         content: "NO: 20/7/8/9 Private Bus Stand Panadura",
