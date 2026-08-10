@@ -226,7 +226,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       { type: 0, content: "0763243716", bold: 0, align: 1, format: 4 },
       {
         type: 0,
-        content: new Date.now().toLocaleString(),
+        content: new Date(sale.date).toLocaleString(),
         bold: 0,
         align: 1,
         format: 4,
