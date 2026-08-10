@@ -91,6 +91,49 @@ app.post("/api/sales", async (req, res) => {
   res.status(201).json(savedSale); // was `newSale` before save resolved fields like _id in some cases — return the saved doc explicitly
 });
 
+// app.get("/api/sales/report", async (req, res) => {
+//   try {
+//     const { startDate, endDate } = req.query;
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     const skip = (page - 1) * limit;
+
+//     let start = new Date();
+//     let end = new Date();
+
+//     if (startDate && endDate) {
+//       start = new Date(startDate);
+//       end = new Date(endDate);
+//     }
+
+//     start.setHours(0, 0, 0, 0);
+//     end.setHours(23, 59, 59, 999);
+
+//     const filter = { date: { $gte: start, $lte: end } };
+
+//     const [bills, allMatching] = await Promise.all([
+//       Sale.find(filter).sort({ date: -1 }).skip(skip).limit(limit),
+//       Sale.find(filter),
+//     ]);
+
+//     const totalRevenue = allMatching.reduce(
+//       (sum, s) => sum + (s.totalAmount || 0),
+//       0,
+//     );
+//     const totalCount = allMatching.length;
+
+//     res.json({
+//       bills,
+//       totalRevenue,
+//       page,
+//       totalPages: Math.ceil(totalCount / limit) || 1,
+//       totalCount,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ error: "Failed to generate report" });
+//   }
+// });
+
 app.get("/api/sales/report", async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
@@ -98,16 +141,16 @@ app.get("/api/sales/report", async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    let start = new Date();
-    let end = new Date();
+    let start, end;
 
     if (startDate && endDate) {
-      start = new Date(startDate);
-      end = new Date(endDate);
+      start = new Date(startDate + "T00:00:00.000Z");
+      end = new Date(endDate + "T23:59:59.999Z");
+    } else {
+      const now = new Date();
+      start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+      end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
     }
-
-    start.setHours(0, 0, 0, 0);
-    end.setHours(23, 59, 59, 999);
 
     const filter = { date: { $gte: start, $lte: end } };
 
@@ -116,10 +159,7 @@ app.get("/api/sales/report", async (req, res) => {
       Sale.find(filter),
     ]);
 
-    const totalRevenue = allMatching.reduce(
-      (sum, s) => sum + (s.totalAmount || 0),
-      0,
-    );
+    const totalRevenue = allMatching.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
     const totalCount = allMatching.length;
 
     res.json({
@@ -130,6 +170,7 @@ app.get("/api/sales/report", async (req, res) => {
       totalCount,
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to generate report" });
   }
 });
