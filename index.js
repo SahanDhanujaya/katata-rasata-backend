@@ -304,33 +304,23 @@ try {
 function sinhalaTextToBase64(text, options = {}) {
   const {
     fontSize = 32,
-    fontFamily = "Noto Sans Sinhala, sans-serif",
+    fontFamily = "Noto Sans Sinhala",
     bold = false,
     padding = 8,
-    width = 384, // typical 58mm thermal printer width in px at 203dpi
+    width = 384,
   } = options;
 
-  const canvas = document.createElement("canvas");
+  const canvas = createCanvas(width, fontSize + padding * 2); // <-- not document.createElement
   const ctx = canvas.getContext("2d");
 
-  // Measure text first to size the canvas
-  ctx.font = `${bold ? "bold " : ""}${fontSize}px ${fontFamily}`;
-  const metrics = ctx.measureText(text);
-  const textWidth = Math.min(metrics.width, width - padding * 2);
-
-  canvas.width = width;
-  canvas.height = fontSize + padding * 2;
-
-  // Re-apply font after resize (canvas resets context on resize)
-  ctx.font = `${bold ? "bold " : ""}${fontSize}px ${fontFamily}`;
+  ctx.font = `${bold ? "bold " : ""}${fontSize}px "${fontFamily}"`;
   ctx.fillStyle = "#000000";
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
 
   ctx.fillText(text, width / 2, canvas.height / 2, width - padding * 2);
 
-  // Strip the "data:image/png;base64," prefix — RawBT wants raw base64
-  return canvas.toDataURL("image/png").split(",")[1];
+  return canvas.toBuffer("image/png").toString("base64"); // <-- not canvas.toDataURL
 }
 
 app.get("/api/print/bill/:saleId", async (req, res) => {
