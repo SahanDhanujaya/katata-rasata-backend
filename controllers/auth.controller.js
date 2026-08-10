@@ -136,7 +136,7 @@ const register = async (req, res) => {
       fullName,
       email,
       password: hashedPassword,
-      role: "admin",
+      role: "user",
     });
 
     // Generate Access Token

@@ -6,7 +6,7 @@ const ROLES = require("../enum/roles");
 
 const router = express.Router();
 
-router.post("/auth/register", verifyAuth, authorizeRole(ROLES.ADMIN), register);
+router.post("/auth/register", register);
 router.post("/auth/login", login);
 router.post("/auth/logout", verifyAuth, logout);
 router.get("/auth/me", verifyAuth, me);
