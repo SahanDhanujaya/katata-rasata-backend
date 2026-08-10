@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const router = require("./routes/auth.routes");
 const cookieParser = require("cookie-parser");
+const { authorizeRole, verifyAuth } = require("./middlewares/auth.middleware");
 
 const app = express();
 app.use(express.json());
@@ -33,7 +34,8 @@ const ItemSchema = new mongoose.Schema({
 const Item = mongoose.model("Item", ItemSchema);
 
 const SaleSchema = new mongoose.Schema({
-  orderId: { type: String }, // <-- added: was being sent but silently dropped before
+  // <-- added: Don't Drop orderId
+  orderId: { type: String }, 
   items: Array,
   totalAmount: Number,
   date: { type: Date, default: Date.now },
@@ -143,15 +145,27 @@ app.get("/api/sales/daily", async (req, res) => {
 
 app.put("/api/sales/:id", async (req, res) => {
   try {
-    const { items, totalAmount } = req.body;
+    const { items, totalAmount, orderId } = req.body;
 
-    const recalculatedTotal = Array.isArray(items)
-      ? items.reduce((sum, it) => sum + it.price * it.qty, 0)
-      : totalAmount;
+    const updatePayload = {};
+
+    if (Array.isArray(items)) {
+      updatePayload.items = items;
+    }
+
+    if (typeof totalAmount !== "undefined") {
+      updatePayload.totalAmount = Array.isArray(items)
+        ? items.reduce((sum, it) => sum + it.price * it.qty, 0)
+        : totalAmount;
+    }
+
+    if (typeof orderId !== "undefined") {
+      updatePayload.orderId = orderId;
+    }
 
     const updatedSale = await Sale.findByIdAndUpdate(
       req.params.id,
-      { items, totalAmount: recalculatedTotal },
+      updatePayload,
       { new: true, runValidators: true },
     );
 
@@ -184,7 +198,7 @@ app.delete("/api/sales/:id", async (req, res) => {
   }
 });
 
-app.get("/api/sales/backups", async (req, res) => {
+app.get("/api/sales/backups", verifyAuth, authorizeRole("admin"), async (req, res) => {
   try {
     const backups = await BackupOrder.find().sort({ deletedAt: -1 });
     res.json(backups);
@@ -227,6 +241,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       {
         type: 0,
         content: new Date().toLocaleTimeString("en-US", {
+          timeZone: "Asia/Colombo",
           hour: "numeric",
           minute: "numeric",
           hour12: true,

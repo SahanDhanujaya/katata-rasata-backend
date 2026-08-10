@@ -51,7 +51,7 @@ const login = async (req, res) => {
       },
       process.env.JWT_ACCESS_SECRET,
       {
-        expiresIn: "15m",
+        expiresIn: "1d",
       },
     );
 
@@ -75,7 +75,7 @@ const login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.SAME_SITE || "none",
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
     // Set Refresh Token Cookie
@@ -148,7 +148,7 @@ const register = async (req, res) => {
       },
       process.env.JWT_ACCESS_SECRET,
       {
-        expiresIn: "15m",
+        expiresIn: "1d",
       },
     );
 
@@ -171,7 +171,7 @@ const register = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.SAME_SITE || "none",
-      maxAge: 15 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
     res.cookie("refreshToken", refreshToken, {
