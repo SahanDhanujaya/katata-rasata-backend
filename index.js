@@ -216,11 +216,35 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
 
     const receipt = [
       { type: 0, content: "LAKA'S TAKE AWAY", bold: 1, align: 1, format: 1 },
-      { type: 0, content: "Horana road Wadaka panadura", bold: 0, align: 1, format: 4 },
+      {
+        type: 0,
+        content: "Horana road Wadaka panadura",
+        bold: 0,
+        align: 1,
+        format: 4,
+      },
       { type: 0, content: "0763243716", bold: 0, align: 1, format: 4 },
-      { type: 0, content: new Date(sale.date).toLocaleString(), bold: 0, align: 1, format: 4 },
-      { type: 0, content: `ID: ${sale.orderId || sale._id}`, bold: 0, align: 1, format: 4 },
-      { type: 0, content: "--------------------------------", bold: 0, align: 0, format: 0 },
+      {
+        type: 0,
+        content: new Date(sale.date).toLocaleString(),
+        bold: 0,
+        align: 1,
+        format: 4,
+      },
+      {
+        type: 0,
+        content: `ID: ${sale.orderId || sale._id}`,
+        bold: 0,
+        align: 1,
+        format: 4,
+      },
+      {
+        type: 0,
+        content: "--------------------------------",
+        bold: 0,
+        align: 0,
+        format: 0,
+      },
     ];
 
     (sale.items || []).forEach((item) => {
@@ -234,19 +258,61 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       });
     });
 
-    receipt.push({ type: 0, content: "--------------------------------", bold: 0, align: 0, format: 0 });
-    receipt.push({ type: 0, content: `TOTAL   Rs.${sale.totalAmount.toFixed(2)}`, bold: 1, align: 0, format: 1 });
+    receipt.push({
+      type: 0,
+      content: "--------------------------------",
+      bold: 0,
+      align: 0,
+      format: 0,
+    });
+    receipt.push({
+      type: 0,
+      content: `TOTAL   Rs.${sale.totalAmount.toFixed(2)}`,
+      bold: 1,
+      align: 0,
+      format: 1,
+    });
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
-    receipt.push({ type: 0, content: "Thank You Visit Again!", bold: 1, align: 1, format: 0 });
-    receipt.push({ type: 0, content: "Powered by Trovix Tech", bold: 0, align: 1, format: 4 });
-    receipt.push({ type: 0, content: "0756519837/0764726820", bold: 0, align: 1, format: 4 });
+    receipt.push({
+      type: 0,
+      content: "Thank You Visit Again!",
+      bold: 1,
+      align: 1,
+      format: 0,
+    });
+    receipt.push({
+      type: 0,
+      content: "Powered by Trovix Tech",
+      bold: 0,
+      align: 1,
+      format: 4,
+    });
+    receipt.push({
+      type: 0,
+      content: "0756519837/0764726820",
+      bold: 0,
+      align: 1,
+      format: 4,
+    });
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
 
-    res.json(receipt);
+    const responseObject = {};
+
+    receipt.forEach((item, index) => {
+      responseObject[index] = item;
+    });
+
+    res.json(responseObject);
   } catch (err) {
     console.error("Print bill error:", err.message);
     res.json([
-      { type: 0, content: "Error generating receipt", bold: 1, align: 1, format: 0 },
+      {
+        type: 0,
+        content: "Error generating receipt",
+        bold: 1,
+        align: 1,
+        format: 0,
+      },
     ]);
   }
 });
