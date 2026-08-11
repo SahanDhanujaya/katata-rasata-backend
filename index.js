@@ -37,7 +37,7 @@ const Item = mongoose.model("Item", ItemSchema);
 
 const SaleSchema = new mongoose.Schema({
   // <-- added: Don't Drop orderId
-  orderId: { type: String },
+  orderId: { type: String, unique: true },
   items: Array,
   totalAmount: Number,
   date: { type: Date, default: Date.now },
@@ -278,6 +278,17 @@ app.get(
     }
   },
 );
+ 
+// last-invoice
+app.get('/api/sales/last-invoice', async (req, res) => {
+  try {
+    const lastInvoice = await Sale.findOne().sort({ date: -1 });
+    res.json(lastInvoice);
+  } catch (err) {
+    console.error('Failed to fetch last invoice:', err);
+    res.status(500).json({ error: 'Failed to fetch last invoice' });
+  }
+});
 
 // --- BLUETOOTH PRINT (Android tablet, "Bluetooth Print" by Mate Technologies) ---
 // Tablet's browser navigates to my.bluetoothprint.scheme://<this route's URL>,
@@ -334,13 +345,13 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
     }
 
     const receipt = [
-      { type: 0, content: "KATATA RASATA", bold: 1, align: 1, format: 0 },
+      { type: 0, content: "HOTEL KATATA RASATA", bold: 1, align: 1, format: 0 },
       {
         type: 0,
         content: "NO: 20/7/8/9 Private Bus Stand Panadura",
         bold: 0,
         align: 1,
-        format: 4,
+        format: 3,
       },
       { type: 0, content: "0722838281", bold: 0, align: 1, format: 4 },
       {
@@ -353,14 +364,14 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
         }),
         bold: 0,
         align: 1,
-        format: 4,
+        format: 3,
       },
       {
         type: 0,
         content: `ID: ${sale.orderId || sale._id}`,
         bold: 0,
         align: 1,
-        format: 4,
+        format: 2,
       },
       {
         type: 0,
