@@ -270,15 +270,15 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
     }
 
     const receipt = [
-      { type: 0, content: "කටට රසට", bold: 1, align: 1, format: 1 },
+      { type: 0, content: "Laka's Take Away", bold: 1, align: 1, format: 1 },
       {
         type: 0,
-        content: "NO: 20/7/8/9 Private Bus Stand Panadura",
+        content: "Horana Road Wakada Panadura",
         bold: 0,
         align: 1,
         format: 4,
       },
-      { type: 0, content: "0722838281", bold: 0, align: 1, format: 4 },
+      { type: 0, content: "0763243716", bold: 0, align: 1, format: 4 },
       {
         type: 0,
         content: new Date().toLocaleTimeString("en-US", {
