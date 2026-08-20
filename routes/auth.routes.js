@@ -4,11 +4,11 @@ const { register, login, me, logout } = require("../controllers/auth.controller"
 const {verifyAuth, authorizeRole} = require("../middlewares/auth.middleware");
 const ROLES = require("../enum/roles");
 
-const router = express.Router();
+const authRouter = express.Router();
 
-router.post("/auth/register", register);
-router.post("/auth/login", login);
-router.post("/auth/logout", verifyAuth, logout);
-router.get("/auth/me", verifyAuth, me);
+authRouter.post("/auth/register", register);
+authRouter.post("/auth/login", login);
+authRouter.post("/auth/logout", verifyAuth, logout);
+authRouter.get("/auth/me", verifyAuth, me);
 
-module.exports = router;
+module.exports = authRouter;

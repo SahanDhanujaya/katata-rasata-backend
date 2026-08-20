@@ -2,9 +2,11 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const router = require("./routes/auth.routes");
 const cookieParser = require("cookie-parser");
 const { authorizeRole, verifyAuth } = require("./middlewares/auth.middleware");
+const authRouter = require("./routes/auth.routes");
+const expenseRouter = require("./routes/expense.routes");
+const depositRouter = require("./routes/deposit.routes");
 
 const app = express();
 app.use(express.json());
@@ -154,13 +156,22 @@ app.get("/api/sales/report", async (req, res) => {
 
     const filter = { date: { $gte: start, $lte: end } };
 
-    const [bills, allMatching] = await Promise.all([
+    const [bills, revenueAgg] = await Promise.all([
       Sale.find(filter).sort({ date: -1 }).skip(skip).limit(limit),
-      Sale.find(filter),
+      Sale.aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: null,
+            totalRevenue: { $sum: "$totalAmount" },
+            totalCount: { $sum: 1 },
+          },
+        },
+      ]),
     ]);
 
-    const totalRevenue = allMatching.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
-    const totalCount = allMatching.length;
+    const totalRevenue = revenueAgg[0]?.totalRevenue || 0;
+    const totalCount = revenueAgg[0]?.totalCount || 0;
 
     res.json({
       bills,
@@ -377,6 +388,8 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
   }
 });
 
-app.use("/api", router);
+app.use("/api", authRouter);
+app.use("/api/expenses", expenseRouter);
+app.use("/api/deposits", depositRouter);
 
 app.listen(5000, () => console.log("🚀 Inventory Engine Online on Port 5000"));
