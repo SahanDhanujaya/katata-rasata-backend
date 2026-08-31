@@ -13,7 +13,7 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://katata-rasata.netlify.app"],
+    origin: ["http://localhost:5173", "https://lakas-take-away.netlify.app"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -37,7 +37,7 @@ const Item = mongoose.model("Item", ItemSchema);
 
 const SaleSchema = new mongoose.Schema({
   // <-- added: Don't Drop orderId
-  orderId: { type: String }, 
+  orderId: { type: String },
   items: Array,
   totalAmount: Number,
   date: { type: Date, default: Date.now },
@@ -281,15 +281,15 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
     }
 
     const receipt = [
-      { type: 0, content: "HOTEL KATATA RASATA", bold: 1, align: 1, format: 0 },
+      { type: 0, content: "Laka's Take Away", bold: 1, align: 1, format: 1 },
       {
         type: 0,
-        content: "NO: 20/7/8/9 Private Bus Stand Panadura",
+        content: "Horana Road Wakada Panadura",
         bold: 0,
         align: 1,
-        format: 3,
+        format: 4,
       },
-      { type: 0, content: "0722838281", bold: 0, align: 1, format: 4 },
+      { type: 0, content: "0763243716", bold: 0, align: 1, format: 4 },
       {
         type: 0,
         content: new Date().toLocaleTimeString("en-US", {
@@ -300,14 +300,14 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
         }),
         bold: 0,
         align: 1,
-        format: 3,
+        format: 4,
       },
       {
         type: 0,
         content: `ID: ${sale.orderId || sale._id}`,
         bold: 0,
         align: 1,
-        format: 2,
+        format: 4,
       },
       {
         type: 0,
@@ -317,6 +317,54 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
         format: 0,
       },
     ];
+
+    (sale.items || []).forEach((item) => {
+      const priceStr = `Rs.${(item.price * item.qty).toFixed(2)}`;
+      receipt.push({
+        type: 0,
+        content: padLine(item.name, item.qty, priceStr),
+        bold: 0,
+        align: 0,
+        format: 0,
+      });
+    });
+
+    receipt.push({
+      type: 0,
+      content: "--------------------------------",
+      bold: 0,
+      align: 0,
+      format: 0,
+    });
+    receipt.push({
+      type: 0,
+      content: `TOTAL   Rs.${sale.totalAmount.toFixed(2)}`,
+      bold: 1,
+      align: 0,
+      format: 1,
+    });
+    receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
+    receipt.push({
+      type: 0,
+      content: "Thank You Visit Again!",
+      bold: 1,
+      align: 1,
+      format: 0,
+    });
+    receipt.push({
+      type: 0,
+      content: "Powered by Trovix Tech",
+      bold: 0,
+      align: 1,
+      format: 4,
+    });
+    receipt.push({
+      type: 0,
+      content: "0756519837/0764726820",
+      bold: 0,
+      align: 1,
+      format: 4,
+    });
 
     (sale.items || []).forEach((item) => {
       const priceStr = `Rs.${(item.price * item.qty).toFixed(2)}`;
