@@ -284,7 +284,7 @@ app.get(
     }
   },
 );
- 
+
 // last-invoice
 app.get('/api/sales/last-invoice', async (req, res) => {
   try {
@@ -351,13 +351,13 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
     }
 
     const receipt = [
-      { type: 0, content: "HOTEL KATATA RASATA", bold: 1, align: 1, format: 0 },
+      { type: 0, content: "HOTEL KATATA RASATA", bold: 1, align: 1, format: 1 },
       {
         type: 0,
         content: "NO: 20/7/8/9 Private Bus Stand Panadura",
         bold: 0,
         align: 1,
-        format: 3,
+        format: 4,
       },
       { type: 0, content: "0722838281", bold: 0, align: 1, format: 4 },
       {
@@ -370,14 +370,14 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
         }),
         bold: 0,
         align: 1,
-        format: 3,
+        format: 4,
       },
       {
         type: 0,
         content: `ID: ${sale.orderId || sale._id}`,
         bold: 0,
         align: 1,
-        format: 2,
+        format: 4,
       },
       {
         type: 0,
