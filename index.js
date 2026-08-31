@@ -13,7 +13,7 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://lakas-take-away.netlify.app"],
+    origin: ["http://localhost:5173", "https://katata-rasata.netlify.app"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -281,15 +281,15 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
     }
 
     const receipt = [
-      { type: 0, content: "Laka's Take Away", bold: 1, align: 1, format: 1 },
+      { type: 0, content: "HOTEL KATATA RASATA", bold: 1, align: 1, format: 0 },
       {
         type: 0,
-        content: "Horana Road Wakada Panadura",
+        content: "NO: 20/7/8/9 Private Bus Stand Panadura",
         bold: 0,
         align: 1,
-        format: 4,
+        format: 3,
       },
-      { type: 0, content: "0763243716", bold: 0, align: 1, format: 4 },
+      { type: 0, content: "0722838281", bold: 0, align: 1, format: 4 },
       {
         type: 0,
         content: new Date().toLocaleTimeString("en-US", {
@@ -300,14 +300,14 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
         }),
         bold: 0,
         align: 1,
-        format: 4,
+        format: 3,
       },
       {
         type: 0,
         content: `ID: ${sale.orderId || sale._id}`,
         bold: 0,
         align: 1,
-        format: 4,
+        format: 2,
       },
       {
         type: 0,
