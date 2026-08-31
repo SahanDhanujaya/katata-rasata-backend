@@ -37,7 +37,7 @@ const Item = mongoose.model("Item", ItemSchema);
 
 const SaleSchema = new mongoose.Schema({
   // <-- added: Don't Drop orderId
-  orderId: { type: String }, 
+  orderId: { type: String, unique: true },
   items: Array,
   totalAmount: Number,
   date: { type: Date, default: Date.now },
@@ -150,8 +150,28 @@ app.get("/api/sales/report", async (req, res) => {
       end = new Date(endDate + "T23:59:59.999Z");
     } else {
       const now = new Date();
-      start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
-      end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+      start = new Date(
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate(),
+          0,
+          0,
+          0,
+          0,
+        ),
+      );
+      end = new Date(
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate(),
+          23,
+          59,
+          59,
+          999,
+        ),
+      );
     }
 
     const filter = { date: { $gte: start, $lte: end } };
@@ -250,13 +270,29 @@ app.delete("/api/sales/:id", async (req, res) => {
   }
 });
 
-app.get("/api/sales/backups", verifyAuth, authorizeRole("admin"), async (req, res) => {
+app.get(
+  "/api/sales/backups",
+  verifyAuth,
+  authorizeRole("admin"),
+  async (req, res) => {
+    try {
+      const backups = await BackupOrder.find().sort({ deletedAt: -1 });
+      res.json(backups);
+    } catch (err) {
+      console.error("Fetch backups error:", err);
+      res.status(500).json({ error: "Failed to fetch backups" });
+    }
+  },
+);
+ 
+// last-invoice
+app.get('/api/sales/last-invoice', async (req, res) => {
   try {
-    const backups = await BackupOrder.find().sort({ deletedAt: -1 });
-    res.json(backups);
+    const lastInvoice = await Sale.findOne().sort({ date: -1 });
+    res.json(lastInvoice);
   } catch (err) {
-    console.error("Fetch backups error:", err);
-    res.status(500).json({ error: "Failed to fetch backups" });
+    console.error('Failed to fetch last invoice:', err);
+    res.status(500).json({ error: 'Failed to fetch last invoice' });
   }
 });
 
@@ -268,6 +304,40 @@ function padLine(name, qty, priceStr) {
   const nameCol = name.length > 16 ? name.slice(0, 15) + "." : name.padEnd(16);
   const qtyCol = `x${qty}`.padStart(4);
   return `${nameCol}${qtyCol}  ${priceStr}`;
+}
+
+try {
+  registerFont(path.join(__dirname, "fonts", "NotoSansSinhala-Regular.ttf"), {
+    family: "Noto Sans Sinhala",
+  });
+  registerFont(path.join(__dirname, "fonts", "NotoSansSinhala-Bold.ttf"), {
+    family: "Noto Sans Sinhala",
+    weight: "bold",
+  });
+} catch (err) {
+  console.error("Failed to register Sinhala fonts:", err.message);
+}
+
+function sinhalaTextToBase64(text, options = {}) {
+  const {
+    fontSize = 32,
+    fontFamily = "Noto Sans Sinhala",
+    bold = false,
+    padding = 8,
+    width = 384,
+  } = options;
+
+  const canvas = createCanvas(width, fontSize + padding * 2); // <-- not document.createElement
+  const ctx = canvas.getContext("2d");
+
+  ctx.font = `${bold ? "bold " : ""}${fontSize}px "${fontFamily}"`;
+  ctx.fillStyle = "#000000";
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "center";
+
+  ctx.fillText(text, width / 2, canvas.height / 2, width - padding * 2);
+
+  return canvas.toBuffer("image/png").toString("base64"); // <-- not canvas.toDataURL
 }
 
 app.get("/api/print/bill/:saleId", async (req, res) => {
