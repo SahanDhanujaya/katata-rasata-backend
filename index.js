@@ -356,24 +356,26 @@ function renderReceiptImage(sale, opts = {}) {
 
   // Build lines to draw
   const lines = [];
+  // Keep hotel name size unchanged; increase other text sizes
   lines.push({ text: "HOTEL KATATA RASATA", size: 32, align: "center", bold: true });
-  lines.push({ text: "NO: 20/7/8/9", size: 14, align: "center" });
-  lines.push({ text: "Private Bus Stand Panadura", size: 14, align: "center" });
-  lines.push({ text: "0722838281", size: 14, align: "center" });
-  lines.push({ text: new Date().toLocaleTimeString("en-US", { timeZone: "Asia/Colombo", hour: "numeric", minute: "numeric", hour12: true }), size: 14, align: "center" });
-  lines.push({ text: `ID: ${sale.orderId || sale._id}`, size: 14, align: "center" });
+  lines.push({ text: "NO: 20/7/8/9", size: 20, align: "center" });
+  lines.push({ text: "Private Bus Stand Panadura", size: 20, align: "center" });
+  lines.push({ text: "0722838281", size: 20, align: "center" });
+  lines.push({ text: new Date().toLocaleTimeString("en-US", { timeZone: "Asia/Colombo", hour: "numeric", minute: "numeric", hour12: true }), size: 20, align: "center" });
+  lines.push({ text: `ID: ${sale.orderId || sale._id}`, size: 20, align: "center" });
   lines.push({ text: "--------------------------------", size: 12, align: "center" });
 
   (sale.items || []).forEach((item) => {
-    lines.push({ item: item, size: 16, align: "left" });
+    // increase item font size
+    lines.push({ item: item, size: 22, align: "left" });
   });
 
   lines.push({ text: "--------------------------------", size: 12, align: "center" });
-  lines.push({ text: `TOTAL   Rs.${(sale.totalAmount || 0).toFixed(2)}`, size: 26, align: "center", bold: true });
+  lines.push({ text: `TOTAL   Rs.${(sale.totalAmount || 0).toFixed(2)}`, size: 40, align: "center", bold: true });
   lines.push({ text: "", size: 12 });
-  lines.push({ text: "Thank You Visit Again!", size: 14, align: "center", bold: true });
-  lines.push({ text: "Powered by Trovix Tech", size: 12, align: "center" });
-  lines.push({ text: "0756519837/0764726820", size: 12, align: "center" });
+  lines.push({ text: "Thank You Visit Again!", size: 18, align: "center", bold: true });
+  lines.push({ text: "Powered by Trovix Tech", size: 18, align: "center" });
+  lines.push({ text: "0756519837/0764726820", size: 18, align: "center" });
 
   // Estimate height
   const lineHeights = lines.map((ln) => Math.ceil((ln.size || 12) * 1.3));
@@ -446,23 +448,24 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
     }
 
     const receipt = [
-      // make header larger (format: 3 -> bigger)
+      // keep hotel name format unchanged (do not increase)
       { type: 0, content: "HOTEL KATATA RASATA", bold: 1, align: 1, format: 1 },
       {
         type: 0,
         content: "NO: 20/7/8/9",
         bold: 0,
         align: 1,
-        format: 4,
+        // larger detail font
+        format: 3,
       },
       {
         type: 0,
         content: "Private Bus Stand Panadura",
         bold: 0,
         align: 1,
-        format: 4,
+        format: 3,
       },
-      { type: 0, content: "0722838281", bold: 0, align: 1, format: 4 },
+      { type: 0, content: "0722838281", bold: 0, align: 1, format: 3 },
       {
         type: 0,
         content: new Date().toLocaleTimeString("en-US", {
@@ -473,14 +476,14 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
         }),
         bold: 0,
         align: 1,
-        format: 4,
+        format: 3,
       },
       {
         type: 0,
         content: `ID: ${sale.orderId || sale._id}`,
         bold: 0,
         align: 1,
-        format: 4,
+        format: 3,
       },
       {
         type: 0,
@@ -498,8 +501,8 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
         content: padLine(item.name, item.qty, priceStr),
         bold: 0,
         align: 1,
-        // increase item font size
-        format: 0,
+        // increased item font (keep hotel name unchanged)
+        format: 3,
       });
     });
 
@@ -515,8 +518,8 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       content: `TOTAL   Rs.${sale.totalAmount.toFixed(2)}`,
       bold: 1,
       align: 1,
-      // bigger total font
-      format: 1,
+      // increased total font
+      format: 4,
     });
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
     receipt.push({
@@ -531,14 +534,14 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       content: "Powered by Trovix Tech",
       bold: 0,
       align: 1,
-      format: 4,
+      format: 3,
     });
     receipt.push({
       type: 0,
       content: "0756519837/0764726820",
       bold: 0,
       align: 1,
-      format: 4,
+      format: 3,
     });
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
 
