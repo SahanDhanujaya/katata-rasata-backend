@@ -447,22 +447,22 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
 
     const receipt = [
       // make header larger (format: 3 -> bigger)
-      { type: 0, content: "HOTEL KATATA RASATA", bold: 1, align: 1, format: 3 },
+      { type: 0, content: "HOTEL KATATA RASATA", bold: 1, align: 1, format: 1 },
       {
         type: 0,
         content: "NO: 20/7/8/9",
         bold: 0,
         align: 1,
-        format: 2,
+        format: 4,
       },
       {
         type: 0,
         content: "Private Bus Stand Panadura",
         bold: 0,
         align: 1,
-        format: 2,
+        format: 4,
       },
-      { type: 0, content: "0722838281", bold: 0, align: 1, format: 2 },
+      { type: 0, content: "0722838281", bold: 0, align: 1, format: 4 },
       {
         type: 0,
         content: new Date().toLocaleTimeString("en-US", {
@@ -473,14 +473,14 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
         }),
         bold: 0,
         align: 1,
-        format: 2,
+        format: 4,
       },
       {
         type: 0,
         content: `ID: ${sale.orderId || sale._id}`,
         bold: 0,
         align: 1,
-        format: 3,
+        format: 4,
       },
       {
         type: 0,
@@ -499,7 +499,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
         bold: 0,
         align: 1,
         // increase item font size
-        format: 2,
+        format: 0,
       });
     });
 
@@ -516,7 +516,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       bold: 1,
       align: 1,
       // bigger total font
-      format: 3,
+      format: 1,
     });
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
     receipt.push({
@@ -531,14 +531,14 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       content: "Powered by Trovix Tech",
       bold: 0,
       align: 1,
-      format: 2,
+      format: 4,
     });
     receipt.push({
       type: 0,
       content: "0756519837/0764726820",
       bold: 0,
       align: 1,
-      format: 2,
+      format: 4,
     });
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
 
