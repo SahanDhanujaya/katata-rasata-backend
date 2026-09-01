@@ -3,6 +3,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const path = require("path");
+const { createCanvas, registerFont, loadImage } = require("canvas");
 const { authorizeRole, verifyAuth } = require("./middlewares/auth.middleware");
 const authRouter = require("./routes/auth.routes");
 const expenseRouter = require("./routes/expense.routes");
@@ -341,6 +343,98 @@ function sinhalaTextToBase64(text, options = {}) {
   return canvas.toBuffer("image/png").toString("base64"); // <-- not canvas.toDataURL
 }
 
+// Render a full receipt as a PNG (base64). widthMm defaults to 47mm (typical 58mm paper with 47mm print area)
+function renderReceiptImage(sale, opts = {}) {
+  const {
+    widthMm = 47,
+    dpiPerMm = 8, // ~203 DPI -> ~8 pixels/mm
+    padding = 8,
+    fontFamily = "Noto Sans Sinhala",
+  } = opts;
+
+  const width = Math.round(widthMm * dpiPerMm);
+
+  // Build lines to draw
+  const lines = [];
+  lines.push({ text: "HOTEL KATATA RASATA", size: 32, align: "center", bold: true });
+  lines.push({ text: "NO: 20/7/8/9", size: 14, align: "center" });
+  lines.push({ text: "Private Bus Stand Panadura", size: 14, align: "center" });
+  lines.push({ text: "0722838281", size: 14, align: "center" });
+  lines.push({ text: new Date().toLocaleTimeString("en-US", { timeZone: "Asia/Colombo", hour: "numeric", minute: "numeric", hour12: true }), size: 14, align: "center" });
+  lines.push({ text: `ID: ${sale.orderId || sale._id}`, size: 14, align: "center" });
+  lines.push({ text: "--------------------------------", size: 12, align: "center" });
+
+  (sale.items || []).forEach((item) => {
+    lines.push({ item: item, size: 16, align: "left" });
+  });
+
+  lines.push({ text: "--------------------------------", size: 12, align: "center" });
+  lines.push({ text: `TOTAL   Rs.${(sale.totalAmount || 0).toFixed(2)}`, size: 26, align: "center", bold: true });
+  lines.push({ text: "", size: 12 });
+  lines.push({ text: "Thank You Visit Again!", size: 14, align: "center", bold: true });
+  lines.push({ text: "Powered by Trovix Tech", size: 12, align: "center" });
+  lines.push({ text: "0756519837/0764726820", size: 12, align: "center" });
+
+  // Estimate height
+  const lineHeights = lines.map((ln) => Math.ceil((ln.size || 12) * 1.3));
+  const height = padding * 2 + lineHeights.reduce((a, b) => a + b, 0) + (sale.items || []).length * 6;
+
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = "#000000";
+
+  let y = padding;
+
+  lines.forEach((ln, idx) => {
+    const size = ln.size || 12;
+    ctx.font = `${ln.bold ? "bold " : ""}${size}px "${fontFamily}"`;
+    ctx.textBaseline = "top";
+
+    if (ln.item) {
+      // Draw item row: name on left, qty & price on right
+      const item = ln.item;
+      const name = item.name;
+      const qty = `x${item.qty}`;
+      const price = `Rs.${(item.price * item.qty).toFixed(2)}`;
+
+      const leftX = padding;
+      const rightX = width - padding;
+
+      // item name (may wrap) - simple truncation if too long
+      const maxNameWidth = width - padding * 2 - 120;
+      let drawName = name;
+      while (ctx.measureText(drawName).width > maxNameWidth && drawName.length > 3) {
+        drawName = drawName.slice(0, -1);
+      }
+      ctx.fillText(drawName, leftX, y);
+
+      // qty + price on right
+      const meta = `${qty}  ${price}`;
+      const metaWidth = ctx.measureText(meta).width;
+      ctx.fillText(meta, rightX - metaWidth, y);
+      y += Math.ceil(size * 1.3);
+      return;
+    }
+
+    const text = ln.text || "";
+    const textWidth = ctx.measureText(text).width;
+
+    if (ln.align === "center") {
+      ctx.fillText(text, Math.round((width - textWidth) / 2), y);
+    } else if (ln.align === "right") {
+      ctx.fillText(text, width - padding - textWidth, y);
+    } else {
+      ctx.fillText(text, padding, y);
+    }
+
+    y += Math.ceil(size * 1.3);
+  });
+
+  return canvas.toBuffer("image/png").toString("base64");
+}
+
 app.get("/api/print/bill/:saleId", async (req, res) => {
   try {
     const sale = await Sale.findById(req.params.saleId);
@@ -447,6 +541,17 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       format: 2,
     });
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
+
+    // If client requested an image mode, return a PNG base64 representation
+    if (req.query && req.query.mode === "image") {
+      try {
+        const base64 = renderReceiptImage(sale, { widthMm: 47 });
+        return res.json({ type: "image", base64 });
+      } catch (err) {
+        console.error("Failed to render image receipt:", err);
+        // fall back to JSON text lines below
+      }
+    }
 
     const responseObject = {};
 
