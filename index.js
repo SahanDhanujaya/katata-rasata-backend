@@ -452,7 +452,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       { type: 0, content: "HOTEL KATATA RASATA", bold: 1, align: 1, format: 1 },
       {
         type: 0,
-        content: " ",
+        content: "",
         content: "",
         bold: 0,
         align: 1,
