@@ -519,7 +519,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       bold: 1,
       align: 1,
       // increased total font
-      format: 2,
+      format: 3,
     });
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
     receipt.push({
