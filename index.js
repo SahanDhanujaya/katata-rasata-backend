@@ -358,9 +358,16 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
         content: "NO: 20/7/8/9 Private Bus Stand Panadura",
         bold: 0,
         align: 1,
-        format: 4,
+        format: 3,
       },
-      { type: 0, content: "0722838281", bold: 0, align: 1, format: 4 },
+      {
+        type: 0,
+        content: "Private Bus Stand Panadura",
+        bold: 0,
+        align: 1,
+        format: 3,
+      },
+      { type: 0, content: "0722838281", bold: 0, align: 1, format: 3 },
       {
         type: 0,
         content: new Date().toLocaleTimeString("en-US", {
@@ -378,7 +385,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
         content: `ID: ${sale.orderId || sale._id}`,
         bold: 0,
         align: 1,
-        format: 4,
+        format: 3,
       },
       {
         type: 0,
@@ -412,7 +419,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       content: `TOTAL   Rs.${sale.totalAmount.toFixed(2)}`,
       bold: 1,
       align: 1,
-      format: 1,
+      format: 0,
     });
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
     receipt.push({
