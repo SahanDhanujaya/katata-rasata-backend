@@ -530,18 +530,18 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       format: 0,
     });
     receipt.push({
-      type: 0,
+      type: 1,
       content: "Powered by Trovix Tech",
       bold: 0,
       align: 1,
-      format: 3,
+      format: 4,
     });
     receipt.push({
-      type: 0,
+      type: 1,
       content: "0756519837/0764726820",
       bold: 0,
       align: 1,
-      format: 3,
+      format: 4,
     });
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
 
