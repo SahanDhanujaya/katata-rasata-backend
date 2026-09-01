@@ -384,7 +384,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
         type: 0,
         content: "--------------------------------",
         bold: 0,
-        align: 0,
+        align: 1,
         format: 0,
       },
     ];
@@ -395,7 +395,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
         type: 0,
         content: padLine(item.name, item.qty, priceStr),
         bold: 0,
-        align: 0,
+        align: 1,
         format: 0,
       });
     });
@@ -404,14 +404,14 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       type: 0,
       content: "--------------------------------",
       bold: 0,
-      align: 0,
+      align: 1,
       format: 0,
     });
     receipt.push({
       type: 0,
       content: `TOTAL   Rs.${sale.totalAmount.toFixed(2)}`,
       bold: 1,
-      align: 0,
+      align: 1,
       format: 1,
     });
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
