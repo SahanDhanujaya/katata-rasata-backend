@@ -457,7 +457,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
         bold: 0,
         align: 1,
         // larger detail font
-        format: 4,
+        format: 0,
       },
       {
         type: 0,
@@ -525,7 +525,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
     receipt.push({
       type: 0,
       content: `TOTAL Rs.${sale.totalAmount.toFixed(2)}`,
-      bold: 0,
+      bold: 1,
       align: 1,
       // increased total font
       format: 1,
