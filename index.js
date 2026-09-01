@@ -449,7 +449,15 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
 
     const receipt = [
       // keep hotel name format unchanged (do not increase)
-      { type: 0, content: "HOTEL KATATA RASATA", bold: 1, align: 1, format: 3 },
+      { type: 0, content: "HOTEL KATATA RASATA", bold: 1, align: 1, format: 1 },
+      {
+        type: 0,
+        content: " ",
+        bold: 0,
+        align: 1,
+        // larger detail font
+        format: 0,
+      },
       {
         type: 0,
         content: "NO: 20/7/8/9",
@@ -481,9 +489,9 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       {
         type: 0,
         content: `ID: ${sale.orderId || sale._id}`,
-        bold: 0,
+        bold: 1,
         align: 1,
-        format: 3,
+        format: 0,
       },
       {
         type: 0,
@@ -517,7 +525,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       type: 0,
       content: `TOTAL Rs.${sale.totalAmount.toFixed(2)}`,
       bold: 1,
-      align: 0,
+      align: 1,
       // increased total font
       format: 1,
     });
