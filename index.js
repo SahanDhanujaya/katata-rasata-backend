@@ -453,19 +453,19 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       {
         type: 0,
         content: "NO: 20/7/8/9",
-        bold: 0,
+        bold: 1,
         align: 1,
         // larger detail font
-        format: 3,
+        format: 0,
       },
       {
         type: 0,
         content: "Private Bus Stand Panadura",
-        bold: 0,
+        bold: 1,
         align: 1,
-        format: 3,
+        format: 0,
       },
-      { type: 0, content: "0722838281", bold: 0, align: 1, format: 3 },
+      { type: 0, content: "0722838281", bold: 1, align: 1, format: 0 },
       {
         type: 0,
         content: new Date().toLocaleTimeString("en-US", {
@@ -499,10 +499,10 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       receipt.push({
         type: 0,
         content: padLine(item.name, item.qty, priceStr),
-        bold: 0,
+        bold: 1,
         align: 1,
         // increased item font (keep hotel name unchanged)
-        format: 3,
+        format: 0,
       });
     });
 
@@ -519,7 +519,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       bold: 1,
       align: 1,
       // increased total font
-      format: 0,
+      format: 2,
     });
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
     receipt.push({
