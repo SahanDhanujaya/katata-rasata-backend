@@ -30,6 +30,7 @@ mongoose
 // --- MODELS ---
 const ItemSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  display_name: { type: String, required: true },
   price: { type: Number, required: true },
   category: { type: String, required: true },
 });
