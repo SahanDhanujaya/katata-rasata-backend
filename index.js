@@ -412,12 +412,10 @@ function renderReceiptImage(sale, opts = {}) {
       }
       ctx.fillText(drawName, leftX, y);
 
-      // qty + price: left-align immediately after the item name when possible
+      // qty + price on right
       const meta = `${qty}  ${price}`;
       const metaWidth = ctx.measureText(meta).width;
-      const nameWidth = ctx.measureText(drawName).width;
-      const metaX = Math.min(rightX - metaWidth, leftX + nameWidth + 8);
-      ctx.fillText(meta, metaX, y);
+      ctx.fillText(meta, rightX - metaWidth, y);
       y += Math.ceil(size * 1.3);
       return;
     }
