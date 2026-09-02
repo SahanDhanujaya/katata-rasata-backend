@@ -366,53 +366,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       format: 4,
     });
 
-    (sale.items || []).forEach((item) => {
-      const priceStr = `Rs.${(item.price * item.qty).toFixed(2)}`;
-      receipt.push({
-        type: 0,
-        content: padLine(item.name, item.qty, priceStr),
-        bold: 0,
-        align: 0,
-        format: 0,
-      });
-    });
-
-    receipt.push({
-      type: 0,
-      content: "--------------------------------",
-      bold: 0,
-      align: 0,
-      format: 0,
-    });
-    receipt.push({
-      type: 0,
-      content: `TOTAL   Rs.${sale.totalAmount.toFixed(2)}`,
-      bold: 1,
-      align: 0,
-      format: 1,
-    });
-    receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
-    receipt.push({
-      type: 0,
-      content: "Thank You Visit Again!",
-      bold: 1,
-      align: 1,
-      format: 0,
-    });
-    receipt.push({
-      type: 0,
-      content: "Powered by Trovix Tech",
-      bold: 0,
-      align: 1,
-      format: 4,
-    });
-    receipt.push({
-      type: 0,
-      content: "0756519837/0764726820",
-      bold: 0,
-      align: 1,
-      format: 4,
-    });
+   
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
 
     const responseObject = {};
