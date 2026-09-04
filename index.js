@@ -457,8 +457,8 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       }
     }
 
-    // Generate base64 image specifically for Sinhala text
-    const sinhalaBase64 = sinhalaTextToBase64("ස්තූතියි නැවත එන්න!", {
+    // Generate Sinhala Text Image with White Background
+    const sinhalaImageUri = sinhalaTextToBase64("ස්තූතියි නැවත එන්න!", {
       fontSize: 28,
       bold: true,
       width: 384,
@@ -516,7 +516,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       align: 1,
       format: 0,
     });
-    
+
     receipt.push({
       type: 0,
       content: `TOTAL Rs.${(sale.totalAmount || 0).toFixed(2)}`,
@@ -524,14 +524,16 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       align: 1,
       format: 1,
     });
-    
+
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
 
-    // Print Sinhala message as an image (Type 1)
+    // Print Sinhala message as Type 1 (Image) with complete metadata for Bluetooth Print App
     receipt.push({
       type: 1,
-      path: sinhalaBase64,
+      path: sinhalaImageUri,
+      base64: sinhalaImageUri.replace(/^data:image\/png;base64,/, ""),
       align: 1,
+      width: 384,
     });
 
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
