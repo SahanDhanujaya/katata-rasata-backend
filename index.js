@@ -529,7 +529,6 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       format: 0,
     });
 
-    receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
     receipt.push({
       type: 0,
       content: "Powered by Trovix Tech",
