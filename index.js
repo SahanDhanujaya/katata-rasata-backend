@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const path = require("path");
-const { createCanvas, registerFont, loadImage } = require("canvas");
+const { createCanvas, registerFont } = require("canvas");
 const { authorizeRole, verifyAuth } = require("./middlewares/auth.middleware");
 const authRouter = require("./routes/auth.routes");
 const expenseRouter = require("./routes/expense.routes");
@@ -39,7 +39,6 @@ const ItemSchema = new mongoose.Schema({
 const Item = mongoose.model("Item", ItemSchema);
 
 const SaleSchema = new mongoose.Schema({
-  // <-- added: Don't Drop orderId
   orderId: { type: String, unique: true },
   items: Array,
   totalAmount: Number,
@@ -93,51 +92,8 @@ app.delete("/api/items/:id", async (req, res) => {
 app.post("/api/sales", async (req, res) => {
   const newSale = new Sale(req.body);
   const savedSale = await newSale.save();
-  res.status(201).json(savedSale); // was `newSale` before save resolved fields like _id in some cases — return the saved doc explicitly
+  res.status(201).json(savedSale);
 });
-
-// app.get("/api/sales/report", async (req, res) => {
-//   try {
-//     const { startDate, endDate } = req.query;
-//     const page = parseInt(req.query.page) || 1;
-//     const limit = parseInt(req.query.limit) || 10;
-//     const skip = (page - 1) * limit;
-
-//     let start = new Date();
-//     let end = new Date();
-
-//     if (startDate && endDate) {
-//       start = new Date(startDate);
-//       end = new Date(endDate);
-//     }
-
-//     start.setHours(0, 0, 0, 0);
-//     end.setHours(23, 59, 59, 999);
-
-//     const filter = { date: { $gte: start, $lte: end } };
-
-//     const [bills, allMatching] = await Promise.all([
-//       Sale.find(filter).sort({ date: -1 }).skip(skip).limit(limit),
-//       Sale.find(filter),
-//     ]);
-
-//     const totalRevenue = allMatching.reduce(
-//       (sum, s) => sum + (s.totalAmount || 0),
-//       0,
-//     );
-//     const totalCount = allMatching.length;
-
-//     res.json({
-//       bills,
-//       totalRevenue,
-//       page,
-//       totalPages: Math.ceil(totalCount / limit) || 1,
-//       totalCount,
-//     });
-//   } catch (err) {
-//     res.status(500).json({ error: "Failed to generate report" });
-//   }
-// });
 
 app.get("/api/sales/report", async (req, res) => {
   try {
@@ -289,25 +245,17 @@ app.get(
 );
 
 // last-invoice
-app.get('/api/sales/last-invoice', async (req, res) => {
+app.get("/api/sales/last-invoice", async (req, res) => {
   try {
     const lastInvoice = await Sale.findOne().sort({ date: -1 });
     res.json(lastInvoice);
   } catch (err) {
-    console.error('Failed to fetch last invoice:', err);
-    res.status(500).json({ error: 'Failed to fetch last invoice' });
+    console.error("Failed to fetch last invoice:", err);
+    res.status(500).json({ error: "Failed to fetch last invoice" });
   }
 });
 
-// --- BLUETOOTH PRINT (Android tablet, "Bluetooth Print" by Mate Technologies) ---
-// Tablet's browser navigates to my.bluetoothprint.scheme://<this route's URL>,
-// the app fetches this route directly and prints the JSON it gets back.
-
-function padLine(name, qty, priceStr) {
-  const nameCol = name.length > 16 ? name.slice(0, 15) + "." : name.padEnd(16);
-  const qtyCol = `x${qty}`.padStart(4);
-  return `${nameCol}${qtyCol}  ${priceStr}`;
-}
+// --- BLUETOOTH PRINT & CANVAS IMAGE RENDERER ---
 
 try {
   registerFont(path.join(__dirname, "fonts", "NotoSansSinhala-Regular.ttf"), {
@@ -321,29 +269,7 @@ try {
   console.error("Failed to register Sinhala fonts:", err.message);
 }
 
-function sinhalaTextToBase64(text, options = {}) {
-  const {
-    fontSize = 32,
-    fontFamily = "Noto Sans Sinhala",
-    bold = false,
-    padding = 8,
-    width = 384,
-  } = options;
-
-  const canvas = createCanvas(width, fontSize + padding * 2); // <-- not document.createElement
-  const ctx = canvas.getContext("2d");
-
-  ctx.font = `${bold ? "bold " : ""}${fontSize}px "${fontFamily}"`;
-  ctx.fillStyle = "#000000";
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "center";
-
-  ctx.fillText(text, width / 2, canvas.height / 2, width - padding * 2);
-
-  return canvas.toBuffer("image/png").toString("base64"); // <-- not canvas.toDataURL
-}
-
-// Render a full receipt as a PNG (base64). widthMm defaults to 47mm (typical 58mm paper with 47mm print area)
+// Render a full receipt as a PNG (base64). widthMm defaults to 47mm (~376px)
 function renderReceiptImage(sale, opts = {}) {
   const {
     widthMm = 47,
@@ -361,25 +287,42 @@ function renderReceiptImage(sale, opts = {}) {
   lines.push({ text: "NO: 20/7/8/9", size: 20, align: "center" });
   lines.push({ text: "Private Bus Stand Panadura", size: 20, align: "center" });
   lines.push({ text: "0722838281", size: 20, align: "center" });
-  lines.push({ text: new Date().toLocaleTimeString("en-US", { timeZone: "Asia/Colombo", hour: "numeric", minute: "numeric", hour12: true }), size: 20, align: "center" });
+  lines.push({
+    text: new Date().toLocaleTimeString("en-US", {
+      timeZone: "Asia/Colombo",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
+    }),
+    size: 20,
+    align: "center",
+  });
   lines.push({ text: `ID: ${sale.orderId || sale._id}`, size: 20, align: "center" });
   lines.push({ text: "--------------------------------", size: 12, align: "center" });
 
   (sale.items || []).forEach((item) => {
-    // increase item font size
+    // Increased item font size
     lines.push({ item: item, size: 22, align: "left" });
   });
 
   lines.push({ text: "--------------------------------", size: 12, align: "center" });
-  lines.push({ text: `TOTAL   Rs.${(sale.totalAmount || 0).toFixed(2)}`, size: 40, align: "center", bold: true });
+  lines.push({
+    text: `TOTAL   Rs.${(sale.totalAmount || 0).toFixed(2)}`,
+    size: 40,
+    align: "center",
+    bold: true,
+  });
   lines.push({ text: "", size: 12 });
   lines.push({ text: "Thank You Visit Again!", size: 18, align: "center", bold: true });
   lines.push({ text: "Powered by Trovix Tech", size: 18, align: "center" });
   lines.push({ text: "0756519837/0764726820", size: 18, align: "center" });
 
-  // Estimate height
+  // Estimate height dynamically
   const lineHeights = lines.map((ln) => Math.ceil((ln.size || 12) * 1.3));
-  const height = padding * 2 + lineHeights.reduce((a, b) => a + b, 0) + (sale.items || []).length * 6;
+  const height =
+    padding * 2 +
+    lineHeights.reduce((a, b) => a + b, 0) +
+    (sale.items || []).length * 6;
 
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
@@ -389,7 +332,7 @@ function renderReceiptImage(sale, opts = {}) {
 
   let y = padding;
 
-  lines.forEach((ln, idx) => {
+  lines.forEach((ln) => {
     const size = ln.size || 12;
     ctx.font = `${ln.bold ? "bold " : ""}${size}px "${fontFamily}"`;
     ctx.textBaseline = "top";
@@ -404,10 +347,13 @@ function renderReceiptImage(sale, opts = {}) {
       const leftX = padding;
       const rightX = width - padding;
 
-      // item name (may wrap) - simple truncation if too long
+      // Simple truncation if item name is too long for line
       const maxNameWidth = width - padding * 2 - 120;
       let drawName = name;
-      while (ctx.measureText(drawName).width > maxNameWidth && drawName.length > 3) {
+      while (
+        ctx.measureText(drawName).width > maxNameWidth &&
+        drawName.length > 3
+      ) {
         drawName = drawName.slice(0, -1);
       }
       ctx.fillText(drawName, leftX, y);
@@ -437,6 +383,7 @@ function renderReceiptImage(sale, opts = {}) {
   return canvas.toBuffer("image/png").toString("base64");
 }
 
+// --- PRINT ROUTE ---
 app.get("/api/print/bill/:saleId", async (req, res) => {
   try {
     const sale = await Sale.findById(req.params.saleId);
@@ -447,131 +394,27 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       ]);
     }
 
-    const receipt = [
-      // keep hotel name format unchanged (do not increase)
-      { type: 0, content: "HOTEL KATATA RASATA", bold: 1, align: 1, format: 1 },
-      {
-        type: 0,
-        content: " ",
-        content: "",
-        bold: 0,
-        align: 1,
-        // larger detail font
-        format: 0,
-      },
-      {
-        type: 0,
-        content: "NO: 20/7/8/9",
-        bold: 0,
-        align: 1,
-        // larger detail font
-        format: 0,
-      },
-      {
-        type: 0,
-        content: "Private Bus Stand Panadura",
-        bold: 0,
-        align: 1,
-        format: 0,
-      },
-      { type: 0, content: "0722838281", bold: 0, align: 1, format: 0 },
-      {
-        type: 0,
-        content: new Date().toLocaleTimeString("en-US", {
-          timeZone: "Asia/Colombo",
-          hour: "numeric",
-          minute: "numeric",
-          hour12: true,
-        }),
-        bold: 0,
-        align: 1,
-        format: 0,
-      },
-      {
-        type: 0,
-        content: `ID: ${sale.orderId || sale._id}`,
-        bold: 1,
-        align: 1,
-        format: 0,
-      },
-      {
-        type: 0,
-        content: "--------------------------------",
-        bold: 0,
-        align: 1,
-        format: 0,
-      },
-    ];
-
-    (sale.items || []).forEach((item) => {
-      const priceStr = `Rs.${(item.price * item.qty).toFixed(2)}`;
-      receipt.push({
-        type: 0,
-        content: padLine(item.name, item.qty, priceStr),
-        bold: 0,
-        align: 0,
-        // increased item font (keep hotel name unchanged)
-        format: 0,
-      });
-    });
-
-    receipt.push({
-      type: 0,
-      content: "--------------------------------",
-      bold: 0,
-      align: 1,
-      format: 0,
-    });
-    receipt.push({
-      type: 0,
-      content: `TOTAL Rs.${sale.totalAmount.toFixed(2)}`,
-      bold: 1,
-      align: 1,
-      // increased total font
-      format: 1,
-    });
-    receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
-    receipt.push({
-      type: 0,
-      content: "Thank You Visit Again!",
-      bold: 1,
-      align: 1,
-      format: 0,
-    });
-    receipt.push({
-      type: 0,
-      content: "Powered by Trovix Tech",
-      bold: 0,
-      align: 1,
-      format: 4,
-    });
-    receipt.push({
-      type: 0,
-      content: "0756519837/0764726820",
-      bold: 0,
-      align: 1,
-      format: 4,
-    });
-    receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
-
-    // If client requested an image mode, return a PNG base64 representation
+    // 1. If explicit image query parameter passed (e.g., ?mode=image)
     if (req.query && req.query.mode === "image") {
       try {
         const base64 = renderReceiptImage(sale, { widthMm: 47 });
         return res.json({ type: "image", base64 });
       } catch (err) {
         console.error("Failed to render image receipt:", err);
-        // fall back to JSON text lines below
       }
     }
 
-    const responseObject = {};
+    // 2. Default: Render receipt as PNG Base64 image payload (type: 1) for Sinhala support in Bluetooth Print App
+    const base64Image = renderReceiptImage(sale, { widthMm: 47 });
+    const responseObject = {
+      0: {
+        type: 1,
+        path: base64Image,
+        align: 1,
+      },
+    };
 
-    receipt.forEach((item, index) => {
-      responseObject[index] = item;
-    });
-
-    res.json(responseObject);
+    return res.json(responseObject);
   } catch (err) {
     console.error("Print bill error:", err.message);
     res.json([
