@@ -457,13 +457,6 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       }
     }
 
-    // Generate Sinhala Text Image with White Background
-    const sinhalaImageUri = sinhalaTextToBase64("ස්තූතියි නැවත එන්න!", {
-      fontSize: 28,
-      bold: true,
-      width: 384,
-    });
-
     const receipt = [
       { type: 0, content: "HOTEL KATATA RASATA", bold: 1, align: 1, format: 1 },
       { type: 0, content: "NO: 20/7/8/9", bold: 0, align: 1, format: 0 },
@@ -529,11 +522,11 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
 
     // Print Sinhala message as Type 1 (Image) with complete metadata for Bluetooth Print App
     receipt.push({
-      type: 1,
-      path: sinhalaImageUri,
-      base64: sinhalaImageUri.replace(/^data:image\/png;base64,/, ""),
+      type: 0,
+      content: "Thank You Visit Again!",
+      bold: 1,
       align: 1,
-      width: 384,
+      format: 0,
     });
 
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
