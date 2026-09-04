@@ -447,34 +447,27 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       ]);
     }
 
+    // Check if client explicitly requested full receipt as a single image
+    if (req.query && req.query.mode === "image") {
+      try {
+        const base64 = renderReceiptImage(sale, { widthMm: 47 });
+        return res.json({ type: "image", base64 });
+      } catch (err) {
+        console.error("Failed to render image receipt:", err);
+      }
+    }
+
+    // Generate base64 image specifically for Sinhala text
+    const sinhalaBase64 = sinhalaTextToBase64("ස්තූතියි නැවත එන්න!", {
+      fontSize: 28,
+      bold: true,
+      width: 384,
+    });
+
     const receipt = [
-      // keep hotel name format unchanged (do not increase)
       { type: 0, content: "HOTEL KATATA RASATA", bold: 1, align: 1, format: 1 },
-      {
-        type: 0,
-        content: " ",
-        content: "",
-        bold: 0,
-        align: 1,
-        // larger detail font
-        format: 4,
-        format: 0,
-      },
-      {
-        type: 0,
-        content: "NO: 20/7/8/9",
-        bold: 0,
-        align: 1,
-        // larger detail font
-        format: 0,
-      },
-      {
-        type: 0,
-        content: "Private Bus Stand Panadura",
-        bold: 0,
-        align: 1,
-        format: 0,
-      },
+      { type: 0, content: "NO: 20/7/8/9", bold: 0, align: 1, format: 0 },
+      { type: 0, content: "Private Bus Stand Panadura", bold: 0, align: 1, format: 0 },
       { type: 0, content: "0722838281", bold: 0, align: 1, format: 0 },
       {
         type: 0,
@@ -504,6 +497,7 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       },
     ];
 
+    // Itemized lines
     (sale.items || []).forEach((item) => {
       const priceStr = `Rs.${(item.price * item.qty).toFixed(2)}`;
       receipt.push({
@@ -511,7 +505,6 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
         content: padLine(item.name, item.qty, priceStr),
         bold: 0,
         align: 0,
-        // increased item font (keep hotel name unchanged)
         format: 0,
       });
     });
@@ -523,52 +516,42 @@ app.get("/api/print/bill/:saleId", async (req, res) => {
       align: 1,
       format: 0,
     });
+    
     receipt.push({
       type: 0,
-      content: `TOTAL Rs.${sale.totalAmount.toFixed(2)}`,
-      bold: 0,
+      content: `TOTAL Rs.${(sale.totalAmount || 0).toFixed(2)}`,
       bold: 1,
       align: 1,
-      // increased total font
       format: 1,
     });
+    
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
+
+    // Print Sinhala message as an image (Type 1)
     receipt.push({
-      type: 0,
-      content: "හෙලෝ Again!",
-      bold: 1,
+      type: 1,
+      path: sinhalaBase64,
       align: 1,
-      format: 0,
     });
+
+    receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
     receipt.push({
       type: 0,
       content: "Powered by Trovix Tech",
       bold: 0,
       align: 1,
-      format: 4,
+      format: 0,
     });
     receipt.push({
       type: 0,
       content: "0756519837/0764726820",
       bold: 0,
       align: 1,
-      format: 4,
+      format: 0,
     });
     receipt.push({ type: 0, content: " ", bold: 0, align: 0, format: 0 });
 
-    // If client requested an image mode, return a PNG base64 representation
-    if (req.query && req.query.mode === "image") {
-      try {
-        const base64 = renderReceiptImage(sale, { widthMm: 47 });
-        return res.json({ type: "image", base64 });
-      } catch (err) {
-        console.error("Failed to render image receipt:", err);
-        // fall back to JSON text lines below
-      }
-    }
-
     const responseObject = {};
-
     receipt.forEach((item, index) => {
       responseObject[index] = item;
     });
