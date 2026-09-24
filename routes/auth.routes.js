@@ -10,7 +10,7 @@ authRouter.post("/auth/register", register);
 authRouter.post("/auth/login", login);
 authRouter.post("/auth/logout", verifyAuth, logout);
 authRouter.get("/auth/me", verifyAuth, me);
-authRouter.get("/pay/check", verifyAuth, checkIsPaid)
+authRouter.get("/pay/check/:email", verifyAuth, checkIsPaid)
 authRouter.patch("/pay/pay", verifyAuth, handlePayment)
 
 module.exports = authRouter;

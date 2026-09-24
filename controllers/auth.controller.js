@@ -260,17 +260,36 @@ const logout = async (req, res) => {
 
 const checkIsPaid = async (req, res) => {
   try {
-    const user = await User.findOne({ isPaid: true });
+    const { email } = req.params;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        isPaid: false,
+        message: "User Email is required",
+      });
+    }
+
+    const user = await User.findOne({email: email.toLowerCase().trim()}).select("isPaid");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        isPaid: false,
+        message: "User not found",
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      isPaid: !!user,
+      isPaid: user.isPaid === true,
     });
   } catch (error) {
     console.error("Check payment error:", error);
 
     return res.status(500).json({
       success: false,
+      isPaid: false,
       message: "Internal server error",
     });
   }
@@ -278,17 +297,19 @@ const checkIsPaid = async (req, res) => {
 
 const handlePayment = async (req, res) => {
   try {
-    const { userId, isPaid } = req.body;
-    console.log(userId)
-    if (!userId || typeof isPaid !== "boolean") {
+    const { email, isPaid } = req.body;
+
+    console.log("Email:", email);
+
+    if (!email || typeof isPaid !== "boolean") {
       return res.status(400).json({
         success: false,
-        message: "userId and isPaid are required",
+        message: "email and isPaid are required",
       });
     }
 
-    const user = await User.findByIdAndUpdate(
-      userId,
+    const user = await User.findOneAndUpdate(
+      { email: email.toLowerCase().trim() },
       { isPaid },
       { new: true }
     );
@@ -302,6 +323,7 @@ const handlePayment = async (req, res) => {
 
     return res.status(200).json({
       success: true,
+      email: user.email,
       isPaid: user.isPaid,
       message: isPaid
         ? "Subscription activated"
