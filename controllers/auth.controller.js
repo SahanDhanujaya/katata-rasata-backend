@@ -191,7 +191,6 @@ const register = async (req, res) => {
       message: "User registered successfully.",
       user: userData,
     });
-
   } catch (error) {
     console.error(error);
 
@@ -259,4 +258,63 @@ const logout = async (req, res) => {
   }
 };
 
-module.exports = { login, register, me, logout };
+const checkIsPaid = async (req, res) => {
+  try {
+    const user = await User.findOne({ isPaid: true });
+
+    return res.status(200).json({
+      success: true,
+      isPaid: !!user,
+    });
+  } catch (error) {
+    console.error("Check payment error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+const handlePayment = async (req, res) => {
+  try {
+    const { userId, isPaid } = req.body;
+    console.log(userId)
+    if (!userId || typeof isPaid !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "userId and isPaid are required",
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { isPaid },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      isPaid: user.isPaid,
+      message: isPaid
+        ? "Subscription activated"
+        : "Subscription deactivated",
+    });
+  } catch (error) {
+    console.error("Payment update error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+module.exports = { login, register, me, logout, checkIsPaid, handlePayment };
